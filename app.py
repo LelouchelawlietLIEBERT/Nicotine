@@ -1,34 +1,41 @@
-from flask import Flask, render_template, request
-from dash import Dash, dcc, html, Input, Output
+import dash
+from dash import dcc, html, Input, Output
 import plotly.graph_objs as go
 import numpy as np
 
-# Initialize Flask app
-server = Flask(__name__)
-
-# Initialize Dash app as a component of Flask
-dash_app = Dash(__name__, server=server, url_base_pathname='/dash/')
+# Initialize Dash app
+app = dash.Dash(__name__)
+app.title = "Nicotine Effect on Cell Health"
+server = app.server
 
 # Generate sample data for visualization
-nicotine_steps = np.linspace(0, 10, 11)
+# Healthy baseline values
+cytokine_levels = [10]  # TNF-α, IL-1β, IL-6 levels (aggregate measure)
+viability = [100]  # Percentage of live cells
+oxidative_stress = [20]  # ROS levels (lower is better)
+metabolic_rate = [80]  # ATP production level
+apoptosis_markers = [10]  # Caspase levels (lower is better)
+
+# Effects of nicotine (simulation)
+nicotine_steps = np.linspace(0, 10, 11)  # Nicotine exposure levels (0 to 10)
 cytokine_increase = [10 + 5 * step for step in nicotine_steps]
 viability_decrease = [100 - 8 * step for step in nicotine_steps]
 oxidative_stress_increase = [20 + 7 * step for step in nicotine_steps]
 metabolic_rate_decrease = [80 - 6 * step for step in nicotine_steps]
 apoptosis_markers_increase = [10 + 4 * step for step in nicotine_steps]
 
-medicine_steps = np.linspace(0, 10, 11)
+# Medicine effect (simulation)
+medicine_steps = np.linspace(0, 10, 11)  # Medicine response levels (0 to 10)
 cytokine_reduction = [cytokine_increase[-1] - 6 * step for step in medicine_steps]
 viability_recovery = [viability_decrease[-1] + 7 * step for step in medicine_steps]
 oxidative_stress_reduction = [oxidative_stress_increase[-1] - 6 * step for step in medicine_steps]
 metabolic_rate_recovery = [metabolic_rate_decrease[-1] + 5 * step for step in medicine_steps]
 apoptosis_markers_reduction = [apoptosis_markers_increase[-1] - 3 * step for step in medicine_steps]
 
-# Dash layout
-dash_app.layout = html.Div([
-    html.H1("Nicotine Effect on Cell Health", style={"textAlign": "center"}),
+# Layout of the app
+app.layout = html.Div([
+    html.H1("Interactive Visualization: Nicotine's Effect on Cell Health", style={"textAlign": "center"}),
 
-    # Sliders
     html.Div([
         html.Label("Nicotine Exposure Level:"),
         dcc.Slider(
@@ -53,13 +60,12 @@ dash_app.layout = html.Div([
         ),
     ], style={"padding": "20px"}),
 
-    # Graphs
     dcc.Graph(id='cytokine-levels-graph'),
     dcc.Graph(id='cell-health-graph'),
 ])
 
-# Dash callbacks for interactivity
-@dash_app.callback(
+# Callbacks for interactivity
+@app.callback(
     [
         Output('cytokine-levels-graph', 'figure'),
         Output('cell-health-graph', 'figure')
@@ -70,6 +76,7 @@ dash_app.layout = html.Div([
     ]
 )
 def update_graphs(nicotine_level, medicine_level):
+    # Update data based on nicotine and medicine levels
     cytokine = cytokine_increase[nicotine_level] if medicine_level == 0 else cytokine_reduction[medicine_level]
     viability = viability_decrease[nicotine_level] if medicine_level == 0 else viability_recovery[medicine_level]
     oxidative_stress = oxidative_stress_increase[nicotine_level] if medicine_level == 0 else oxidative_stress_reduction[medicine_level]
@@ -96,10 +103,6 @@ def update_graphs(nicotine_level, medicine_level):
 
     return cytokine_fig, cell_health_fig
 
-# Flask routes
-@server.route('/')
-def index():
-    return render_template('index.html')
-
+# Run the app
 if __name__ == '__main__':
-    server.run(debug=True)
+    app.run_server(debug=True)
